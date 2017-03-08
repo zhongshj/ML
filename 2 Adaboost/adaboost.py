@@ -20,23 +20,23 @@ def cut_error(cut,array,label,p):
     error1 = 0
     error2 = 0
     for i in list(range(np.size(array))):
-        if label[i]*(cut - array[i]) >= 0:
-            #make sure the label correspond well to their position
-            error1 = error1 + p[i]
-            
+        if label[i]*(cut - array[i]) >= 0:           
+            error1 = error1 + p[i]            
         
         if label[i]*(cut - array[i]) <= 0:
             error2 = error2 + p[i]      
             
-        #we take the smaller one to return the error
+    #we take the smaller one to return the error
     if error1 <= error2:
-        order = -1  #means small - -1, large - 1
+        order = -1  #means small -> -1, large -> 1
         return error1, order
     else:
-        order = 1
+        order = 1   #small -> 1, large -> -1
         return error2, order
 
 def get_cut(data):
+    #this function returns middle position of every pair of neighbours
+    #it is a good searching strategy for stump
     ceil = math.ceil(max(data))+1
     floor = math.floor(min(data))-1
     steps = [ceil,floor]
@@ -49,27 +49,21 @@ def get_cut(data):
     return cuts
         
 def stump(data,label,p):
-    #make sure it update at the first time
+    #make sure the error update at the first time
     min_error = 100000
-    for i in list(range(np.size(data.T[0]))):#i indicates the dimension(feature)
-        #make sure we scan it thoroughly
+    for i in list(range(np.size(data.T[0]))):#i indicates the dimension(feature)       
         cuts = get_cut(data[i])
-        #adjust the step length here
-        #print("i=",i)
-        for j in cuts:#j goes through one feature of all samples
+        for j in cuts:#j goes through the cut set for one feature
             error, order = cut_error(j,data[i],label,p)
-            #get min error and corresponding dimension and cut position
-            #print("j=",j)
+            #get error, cut, dimension and order for the best cut          
             if error < min_error:
                 min_error = error
                 min_cut_dimension = i
                 min_cut_position = j
                 min_cut_order = order
             
-            #print(i,j,error)
     return min_cut_dimension, min_cut_position, min_error, min_cut_order
-    
-    
+     
 def get_err_index(array,label,cut,order):
     #calculate misclassified nodes. Initialize with 0 and mark mistaken index as 1
     err_index = np.zeros(np.size(array))
