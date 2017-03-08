@@ -13,7 +13,6 @@ def new_sign(x):
     else:
         return -1
         
-
 def cut_error(cut,array,label,p):
     #calculate the cut error
     #implement 2 error variable in case making completely opposite classification
@@ -70,15 +69,13 @@ def get_err_index(array,label,cut,order):
     for i in list(range(np.size(array))):
         if label[i]*order*(cut - array[i]) < 0:
             err_index[i] = 1
-    
-    #if more than 1/2 samples are misclassified, we just change the labels
-    #if sum(err_index) > 0.5 * np.size(err_index):
-    #    err_index = 1 - err_index
         
     return err_index
    
 def get_ada(data,label,rounds):
+    #this function trains adaboost classifier with given training set
     
+    #following part is just for visualizing sample points
     data0 = []
     data1 = []
     for i in range(0,np.size(data[0])):
@@ -92,25 +89,29 @@ def get_ada(data,label,rounds):
     plt.scatter(data0[0],data0[1],c='r')
     plt.scatter(data1[0],data1[1],c='b')
     
-    
+    #initialize weight
+    #the parameters of weak-classifiers will be stored in these 4 lists
     weight = np.ones(np.size(data[0]))/np.size(data[0])
     list_dim = []
     list_cut = []
     list_beta = []
     list_order = []
 
+    #start adaboost
     for i in list(range(rounds)):
         p = weight/sum(weight)
         dim,cut,error,order = stump(data,label,p)
         err_index = get_err_index(data[dim],label,cut,order)
         weight = weight * (error/(1-error))**(1-err_index)
         print(": dim:",dim," cut:",cut," error:",error," order:",order)
+        
         #plot decision boundary
         if dim == 0:
             plt.axvline(x=cut)
         else:
             plt.axhline(y=cut)
     
+        #store this weak-classifier in lists
         list_dim.append(dim)
         list_cut.append(cut)
         list_beta.append(error/(1-error))
@@ -119,13 +120,15 @@ def get_ada(data,label,rounds):
     return list_dim, list_cut, list_beta, list_order
     
 def ada_classifier(dim,cut,beta,order,observation):
+    #this function is for predicting label for one sample
+    #I used -1 and 1 as labels, so here we just judge >0 or <0 (different from the paper)
     sum_decision = 0
     for i in list(range(np.size(dim))):
         sum_decision = sum_decision + math.log(1/beta[i],2)*order[i]*np.sign(cut[i]-observation[dim[i]])
-        #print(i,"vote:",sum_decision," beta:",beta[i])
     return new_sign(sum_decision)
     
 def test_ada(data, label, list_dim, list_cut, list_beta, list_order):
+    #this function is for calculating accuracy for ada-classifiers
     return_label = np.ones(np.size(data[0]))
     correct_count = 0
     for i in list(range(np.size(data[0]))):
@@ -137,7 +140,7 @@ def test_ada(data, label, list_dim, list_cut, list_beta, list_order):
     print("correct rate: ",rate)
     return rate
 
-#%% gaussian data
+#%% gaussian data(here are 3 options for generating data)
 #generate gaussian data
 m1 = [0,0]
 m2 = [2,2]
@@ -158,21 +161,12 @@ label1 = np.zeros(N)-1
 label2 = np.ones(N)
 train_label = np.append(label1,label2,axis=0)
 test_label = np.append(label1,label2,axis=0)
-
-
-
-#plot decision boundary
-#if dim == 0:
-#    plt.axvline(x=cut)
-#else:
-#    plt.axhline(y=cut)
     
 #%% using handwritten digit data
-
 data = []
 
-train_size = 70
-test_size = 30
+train_size = 30
+test_size = 50
 
 for l in open("opt.txt"):
     row = [int(x) for x in l.split()]
