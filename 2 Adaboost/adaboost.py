@@ -83,18 +83,29 @@ def get_err_index(array,label,cut,order):
         
     return err_index
    
-def get_ada(data,label):
+def get_ada(data,label,rounds):
     
+    data0 = []
+    data1 = []
+    for i in range(0,np.size(data[0])):
+        if label[i] == -1:
+            data0.append(data[:,i])
+        else:
+            data1.append(data[:,i])
+    data0 = np.array(data0).T
+    data1 = np.array(data1).T
+    #choose which two dimensions to visualize
     plt.scatter(data0[0],data0[1],c='r')
     plt.scatter(data1[0],data1[1],c='b')
-
+    
+    
     weight = np.ones(np.size(data[0]))/np.size(data[0])
     list_dim = []
     list_cut = []
     list_beta = []
     list_order = []
 
-    for i in list(range(10)):
+    for i in list(range(rounds)):
         p = weight/sum(weight)
         dim,cut,error,order = stump(data,label,p)
         err_index = get_err_index(data[dim],label,cut,order)
@@ -111,28 +122,33 @@ def get_ada(data,label):
         list_beta.append(error/(1-error))
         list_order.append(order)
         
-    return list_cut
+    return list_dim, list_cut, list_beta, list_order
     
 def ada_classifier(dim,cut,beta,order,observation):
     sum_decision = 0
     for i in list(range(np.size(dim))):
-        sum_decision = sum_decision + math.log(1/beta[i],2)*order[i]*np.sign(cut[i]-observation[dim[i]])
+        sum_decision = sum_decision - math.log(1/beta[i],2)*order[i]*np.sign(cut[i]-observation[dim[i]])
         #print(i,"vote:",sum_decision," beta:",beta[i])
     return new_sign(sum_decision)
-#%%
     
-#data = np.array([[1,3,5,2,4,6],[1,1,1,1,1,1]])
-#label = np.array([-1,-1,-1,1,1,1])
-#weight = np.array([1,1,1,1,1,1])
-
-#a,b = stump(data,label)
+def test_ada(data, label, list_dim, list_cut, list_beta, list_order):
+    return_label = np.ones(np.size(data[0]))
+    correct_count = 0
+    for i in list(range(np.size(data[0]))):
+        return_label[i] = ada_classifier(list_dim,list_cut,list_beta,list_order,data.T[i])
+        print("true: ",label[i]," test: ",return_label[i])
+        if return_label[i] == label[i]:
+            correct_count = correct_count + 1
+    rate = correct_count/np.size(data[0])
+    print("correct rate: ",rate)
+    return rate
 
 #%% gaussian data
 #generate gaussian data
 m1 = [0,0]
 m2 = [2,2]
-cov = [[1,0],[0,1]]
-N = 10
+cov = [[0.4,0],[0,0.4]]
+N = 20
 data0 = np.random.multivariate_normal(m1, cov, N).T
 data1 = np.random.multivariate_normal(m2, cov, N).T
 plt.scatter(data0[0],data0[1],c='r')
@@ -170,17 +186,12 @@ data = np.append(train0,train1,axis=1)
 label1 = np.zeros(50)-1
 label2 = np.ones(50)
 label = np.append(label1,label2,axis=0)
-weight = np.ones(np.size(data[0]))/np.size(data[0])
-
 
 #%% simple data
-#data = x
-#weight = np.ones(np.size(data[0]))/np.size(data[0])
 data0 = np.array([[1,1,2],[1,2,2]])
 data1 = np.array([[2,3,3],[1,1,2]])
 data = np.append(data0,data1,axis=1)
 label = np.array([-1,-1,-1,1,1,1])
-weight = np.ones(np.size(data[0]))/np.size(data[0])
 #%% Adaboost
 #
 #plt.scatter(data0[0],data0[1],c='r')
@@ -209,15 +220,8 @@ weight = np.ones(np.size(data[0]))/np.size(data[0])
 #    list_beta.append(error/(1-error))
 #    list_order.append(order)
 #    
-#%%    
-    
-return_label = np.ones(np.size(data[0]))
-correct_count = 0
-for i in list(range(np.size(data[0]))):
-    return_label[i] = ada_classifier(list_dim,list_cut,list_beta,list_order,data.T[i])
-    print("true: ",label[i]," test: ",return_label[i])
-    if return_label[i] == label[i]:
-        correct_count = correct_count + 1
-
-print("correct rate: ",correct_count/np.size(data[0]))
+#%% main
+list_dim, list_cut, list_beta, list_order = get_ada(data,label,10)
+#%%
+accuracy = test_ada(data,label,list_dim, list_cut, list_beta, list_order)
     
