@@ -21,40 +21,60 @@ def min_cut(cut,array,label,p):
         if label[i]*(cut - array[i]) >= 0:
             #make sure the label correspond well to their position
             error1 = error1 + p[i]
+            
         
         if label[i]*(cut - array[i]) <= 0:
-            error2 = error2 + p[i]           
+            error2 = error2 + p[i]      
+            
             #implement 2 error variable in case making completely opposite classification
             #we take the smaller one to return the error
     #print(cut,error1,error2)
-    return min(error1,error2)
+    if error1 <= error2:
+        order = -1  #means small - -1, large - 1
+        return error1, order
+    else:
+        order = 1
+        return error2, order
 
+def get_cut(data):
+    ceil = math.ceil(max(data))+1
+    floor = math.floor(min(data))-1
+    steps = [ceil,floor]
+    for i in range(0,len(data)):
+        steps.append(data[i])
+    steps.sort()
+    cuts = []
+    for i in range(0,len(steps)-1):
+        cuts.append((steps[i]+steps[i+1])/2)
+    return cuts
+        
 def stump(data,label,p):
     #make sure it update at the first time
-    min_error = 1000 
-    step_length = 0.5
+    min_error = 100000
+    step_length = 0.01
     for i in list(range(np.size(data.T[0]))):#i indicates the dimension(feature)
         #make sure we scan it thoroughly
-        ceil = math.ceil(max(data[i]))+1
-        floor = math.floor(min(data[i]))-1
-        steps = np.arange(floor,ceil,step_length)#adjust the step length here
+        cuts = get_cut(data[i])
+        #adjust the step length here
         
-        for j in steps:#j goes through one feature of all samples
-            error = min_cut(j,data[i],label,p)
+        for j in cuts:#j goes through one feature of all samples
+            error, order = min_cut(j,data[i],label,p)
             #get min error and corresponding dimension and cut position
             if error < min_error:
                 min_error = error
                 min_cut_dimension = i
                 min_cut_position = j
+                min_cut_order = order
+            
             #print(i,j,error)
-    return min_cut_dimension, min_cut_position, min_error
+    return min_cut_dimension, min_cut_position, min_error, min_cut_order
     
     
-def get_err_index(array,label,cut):
+def get_err_index(array,label,cut,order):
     #calculate misclassified nodes. Initialize with 0 and mark mistaken index as 1
     err_index = np.zeros(np.size(array))
     for i in list(range(np.size(array))):
-        if label[i]*(cut - array[i]) >= 0:
+        if label[i]*order*(cut - array[i]) < 0:
             err_index[i] = 1
     
     #if more than 1/2 samples are misclassified, we just change the labels
@@ -62,9 +82,43 @@ def get_err_index(array,label,cut):
         err_index = 1 - err_index
         
     return err_index
+   
+def get_ada(data,label):
     
+    plt.scatter(data0[0],data0[1],c='r')
+    plt.scatter(data1[0],data1[1],c='b')
 
+    weight = np.ones(np.size(data[0]))/np.size(data[0])
+    list_dim = []
+    list_cut = []
+    list_beta = []
+    list_order = []
+
+    for i in list(range(10)):
+        p = weight/sum(weight)
+        dim,cut,error,order = stump(data,label,p)
+        err_index = get_err_index(data[dim],label,cut,order)
+        weight = weight * (error/(1-error))**(1-err_index)
+        print(": dim:",dim," cut:",cut," error:",error," order:",order)
+        #plot decision boundary
+        if dim == 0:
+            plt.axvline(x=cut)
+        else:
+            plt.axhline(y=cut)
     
+        list_dim.append(dim)
+        list_cut.append(cut)
+        list_beta.append(error/(1-error))
+        list_order.append(order)
+        
+    return list_cut
+    
+def ada_classifier(dim,cut,beta,order,observation):
+    sum_decision = 0
+    for i in list(range(np.size(dim))):
+        sum_decision = sum_decision + math.log(1/beta[i],2)*order[i]*np.sign(cut[i]-observation[dim[i]])
+        #print(i,"vote:",sum_decision," beta:",beta[i])
+    return new_sign(sum_decision)
 #%%
     
 #data = np.array([[1,3,5,2,4,6],[1,1,1,1,1,1]])
@@ -73,32 +127,30 @@ def get_err_index(array,label,cut):
 
 #a,b = stump(data,label)
 
-#%% example of gaussian data
+#%% gaussian data
 #generate gaussian data
 m1 = [0,0]
-m2 = [2,0]
+m2 = [2,2]
 cov = [[1,0],[0,1]]
-x1 = np.random.multivariate_normal(m1, cov, 50).T
-x2 = np.random.multivariate_normal(m2, cov, 50).T
-plt.scatter(x1[0],x1[1],c='r')
-plt.scatter(x2[0],x2[1],c='b')
+N = 10
+data0 = np.random.multivariate_normal(m1, cov, N).T
+data1 = np.random.multivariate_normal(m2, cov, N).T
+plt.scatter(data0[0],data0[1],c='r')
+plt.scatter(data1[0],data1[1],c='b')
 
 #set labels as -1 and 1
-x = np.append(x1,x2,axis=1)
-label1 = np.zeros(50)-1
-label2 = np.ones(50)
+data = np.append(data0,data1,axis=1)
+label1 = np.zeros(N)-1
+label2 = np.ones(N)
 label = np.append(label1,label2,axis=0)
 
-weight = np.ones(50)
-p = weight/sum(weight)
-dim,cut,error = stump(x,label,p)
-err_index = get_err_index(x[dim],label,cut)
+
 
 #plot decision boundary
-if dim == 0:
-    plt.axvline(x=cut)
-else:
-    plt.axhline(y=cut)
+#if dim == 0:
+#    plt.axvline(x=cut)
+#else:
+#    plt.axhline(y=cut)
     
 #%% using handwritten digit data
 
@@ -121,22 +173,51 @@ label = np.append(label1,label2,axis=0)
 weight = np.ones(np.size(data[0]))/np.size(data[0])
 
 
-#%% Adaboost
+#%% simple data
 #data = x
 #weight = np.ones(np.size(data[0]))/np.size(data[0])
-
-data = np.array([[1,1,2,2,3,3],[1,2,2,1,1,2]])
+data0 = np.array([[1,1,2],[1,2,2]])
+data1 = np.array([[2,3,3],[1,1,2]])
+data = np.append(data0,data1,axis=1)
 label = np.array([-1,-1,-1,1,1,1])
 weight = np.ones(np.size(data[0]))/np.size(data[0])
-#%%
-for i in list(range(100)):
-    p = weight/sum(weight)
-    dim,cut,error = stump(data,label,p)
-    err_index = get_err_index(data[dim],label,cut)
-    weight = weight * (error/(1-error))**(1-err_index)
-    print(i,":  dim:",dim,"  cut:",cut,"  error:",error)
+#%% Adaboost
+#
+#plt.scatter(data0[0],data0[1],c='r')
+#plt.scatter(data1[0],data1[1],c='b')
+#
+#weight = np.ones(np.size(data[0]))/np.size(data[0])
+#list_dim = []
+#list_cut = []
+#list_beta = []
+#list_order = []
+#
+#for i in list(range(10)):
+#    p = weight/sum(weight)
+#    dim,cut,error,order = stump(data,label,p)
+#    err_index = get_err_index(data[dim],label,cut,order)
+#    weight = weight * (error/(1-error))**(1-err_index)
+#    print(": dim:",dim," cut:",cut," error:",error," order:",order)
+#    #plot decision boundary
+#    if dim == 0:
+#        plt.axvline(x=cut)
+#    else:
+#        plt.axhline(y=cut)
+#  
+# #  list_dim.append(dim)
+#    list_cut.append(cut)
+#    list_beta.append(error/(1-error))
+#    list_order.append(order)
+#    
+#%%    
     
-    
-    
-    
+return_label = np.ones(np.size(data[0]))
+correct_count = 0
+for i in list(range(np.size(data[0]))):
+    return_label[i] = ada_classifier(list_dim,list_cut,list_beta,list_order,data.T[i])
+    print("true: ",label[i]," test: ",return_label[i])
+    if return_label[i] == label[i]:
+        correct_count = correct_count + 1
+
+print("correct rate: ",correct_count/np.size(data[0]))
     
