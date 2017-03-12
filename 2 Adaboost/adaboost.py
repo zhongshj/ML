@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+import random
 
 def new_sign(x):
     #when cutting through a sample, it is still error
@@ -24,7 +25,7 @@ def cut_error(cut,array,label,p):
         
         if label[i]*(cut - array[i]) <= 0:
             error2 = error2 + p[i]      
-            
+    #return error1, -1        
     #we take the smaller one to return the error
     if error1 <= error2:
         order = -1  #means small -> -1, large -> 1
@@ -75,7 +76,7 @@ def get_err_index(array,label,cut,order):
 def get_ada(data,label,rounds):
     #this function trains adaboost classifier with given training set
     
-    #following part is just for visualizing sample points
+    #following part is just for visualizing sample points(you can delete)
     data0 = []
     data1 = []
     for i in range(0,np.size(data[0])):
@@ -117,7 +118,12 @@ def get_ada(data,label,rounds):
         list_beta.append(error/(1-error))
         list_order.append(order)
         
-    return list_dim, list_cut, list_beta, list_order
+    weight = weight / max(weight)
+    for i in list(range(np.size(weight))):
+        if weight[i] > 0.3:
+            plt.scatter(data[0,i],data[1,i],s=50,c='green',alpha=0.2)
+        
+    return list_dim, list_cut, list_beta, list_order, weight
     
 def ada_classifier(dim,cut,beta,order,observation):
     #this function is for predicting label for one sample
@@ -145,7 +151,7 @@ def test_ada(data, label, list_dim, list_cut, list_beta, list_order):
 m1 = [0,0]
 m2 = [2,2]
 cov = [[1,0],[0,1]]
-N = 20
+N = 10
 train0 = np.random.multivariate_normal(m1, cov, N).T
 train1 = np.random.multivariate_normal(m2, cov, N).T
 test0 = np.random.multivariate_normal(m1, cov, N).T
@@ -165,7 +171,7 @@ test_label = np.append(label1,label2,axis=0)
 #%% using handwritten digit data
 data = []
 
-train_size = 30
+train_size = 50
 test_size = 50
 
 for l in open("opt.txt"):
@@ -183,22 +189,47 @@ label1 = np.zeros(train_size)-1
 label2 = np.ones(train_size)
 train_label = np.append(label1,label2,axis=0)
 
-test0 = data0[train_size:train_size+test_size].T
-test1 = data1[train_size:train_size+test_size].T
+#%% use all test sample
+test0 = data0[train_size:train_size+504].T
+test1 = data1[train_size:train_size+521].T
+test_data = np.append(test0,test1,axis=1)
+label1 = np.zeros(504)-1
+label2 = np.ones(521)
+test_label = np.append(label1,label2,axis=0)
+
+#%%randomly sample test set
+test0 = data0[np.random.choice(data0.shape[0],test_size,replace=False), :].T
+test1 = data1[np.random.choice(data1.shape[0],test_size,replace=False), :].T
 test_data = np.append(test0,test1,axis=1)
 label1 = np.zeros(test_size)-1
 label2 = np.ones(test_size)
 test_label = np.append(label1,label2,axis=0)
+accuracy = test_ada(test_data,test_label,list_dim, list_cut, list_beta, list_order)
+accuracies.append(accuracy)
 
 #%% simple data(6 samples)
-data0 = np.array([[1,1,2],[1,2,2]])
-data1 = np.array([[2,3,3],[1,1,2]])
+data0 = np.array([[1,2,3,0,-0.2,-0.4,-0.6,-0.8,-1],[1,1,1,-1,-1,-1,-1,-1,-1]])
+data1 = np.array([[1,2,3,1,2,3,2,3,3],[-1,-1,-1,0,0,0,-0.5,-0.3,-0.6]])
 data = np.append(data0,data1,axis=1)
-label = np.array([-1,-1,-1,1,1,1])
-
+label = np.array([-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1])
+weight = np.array([1,1,1,1,1,1,1,1,1])
+weight = np.append(weight*3.1,weight*1)
+p = weight/sum(weight)
+e,b,c,d = stump(data,label,p)
+plt.scatter(data0[0],data0[1],c='r')
+plt.scatter(data1[0],data1[1],c='b')
+plt.axvline(x=b)
 #%% generate ada classifier
-list_dim, list_cut, list_beta, list_order = get_ada(train_data,train_label,10)
+l = []
+for i in range(1,20):
+    list_dim, list_cut, list_beta, list_order, w = get_ada(train_data,train_label,i)
+    accuracy = test_ada(test_data,test_label,list_dim, list_cut, list_beta, list_order)
+    l.append(accuracy)
 #%% test
-accuracy = test_ada(test_data,test_label,list_dim, list_cut, list_beta, list_order)
-    
 
+train_data = np.array([a1[0:60],a2[0:60]])
+plt.scatter(a1[0:30],a2[0:30],c='r')
+plt.scatter(a1[30:60],a2[30:60],c='b')
+train_label = np.append(np.zeros(30)-1,np.ones(30))
+list_dim, list_cut, list_beta, list_order, w = get_ada(train_data,train_label,100)
+accuracy = test_ada(train_data,train_label,list_dim, list_cut, list_beta, list_order)
