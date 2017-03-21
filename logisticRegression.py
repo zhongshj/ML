@@ -48,30 +48,32 @@ def plus_one(data):
     new_data = np.array(new_data)
     return new_data
  
-def logistic(data,label,theta):
+def logistic(data,label):
     data = plus_one(data)   #data dimension + 1
     dim = np.size(data[0])
     num = np.size(label)
-    #theta = np.ones(dim)    #theta
-    alpha = 0.1       #learning rate
-    k = 10000        #round of iteration
-    for i in range(k):
+    theta = np.ones(dim)    #theta
+    alpha = 0.01       #learning rate
+#    k = 10000        #round of iteration
+#    for i in range(k):
+    while True:
         dif = np.zeros(dim)
         for j in range(num):
             dif = dif + (sigmoid(sum(data[j] * theta))-label[j]) * data[j]
-            #print(dif)
-#        if sum(abs(dif))/np.size(dif) < 0.1:    #break when gradient vector is small
-#            break
+        print(dif)
+        if sum(abs(dif))/np.size(dif) < 0.01:    #break when gradient vector is small
+            break
         theta = theta - alpha * dif
-        #theta = theta/sum(theta)
         print("theta:",theta)
     return theta
-#%%
+#%% generate gaussian data
 N = 10
-data,label = get_gaussian([5,5],[10,10],N)
-#%%
-theta = logistic(data,label,theta)
-#%%
+data,label = get_gaussian([5,5],[6,7],N)
+#%% train classifier
+theta = logistic(data,label)
+#%% plot 
 plt.scatter(data[0:N:,0],data[0:N:,1],c='r')
 plt.scatter(data[N:2*N:,0],data[N:2*N:,1],c='b')
-plt.plot([0,10],[-(0 * theta[0]/theta[1])-(theta[2]/theta[1]),-(10 * theta[0]/theta[1])-(theta[2]/theta[1])],'k-')
+x1 = 0
+x2 = 10
+plt.plot([x1,x2],[-(x1 * theta[0]/theta[1])-(theta[2]/theta[1]),-(x2 * theta[0]/theta[1])-(theta[2]/theta[1])],'k-')
