@@ -181,7 +181,7 @@ for l in open("opt.txt"):
         
 data0 = np.array(data[0:554])
 data1 = np.array(data[554:1125])
-
+#%%
 train0 = data0[0:train_size].T
 train1 = data1[0:train_size].T
 train_data = np.append(train0,train1,axis=1)
@@ -198,14 +198,34 @@ label2 = np.ones(521)
 test_label = np.append(label1,label2,axis=0)
 
 #%%randomly sample test set
-test0 = data0[np.random.choice(data0.shape[0],test_size,replace=False), :].T
-test1 = data1[np.random.choice(data1.shape[0],test_size,replace=False), :].T
-test_data = np.append(test0,test1,axis=1)
-label1 = np.zeros(test_size)-1
-label2 = np.ones(test_size)
-test_label = np.append(label1,label2,axis=0)
-accuracy = test_ada(test_data,test_label,list_dim, list_cut, list_beta, list_order)
-accuracies.append(accuracy)
+accuracies = []
+#%%
+for i in range(20):
+    random_index0 = np.ones(554, dtype=bool)
+    random_index1 = np.ones(571, dtype=bool)
+    random_index0[np.random.choice(554, train_size, replace=False)] = False
+    random_index1[np.random.choice(571, train_size, replace=False)] = False
+    
+    train0 = data0[~random_index0]
+    train1 = data1[~random_index1]
+    train_data = np.append(train0.T,train1.T,axis=1)
+    
+    label1 = np.zeros(train_size)-1
+    label2 = np.ones(train_size)
+    
+    train_label = np.append(label1,label2,axis=0)
+    
+    test0 = data0[random_index0]
+    test1 = data1[random_index1]
+    test_data = np.append(test0.T,test1.T,axis=1)
+    
+    label1 = np.zeros(504)-1
+    label2 = np.ones(521)
+    test_label = np.append(label1,label2,axis=0)
+    
+    list_dim, list_cut, list_beta, list_order, w = get_ada(train_data,train_label,1)
+    accuracy = test_ada(test_data,test_label,list_dim, list_cut, list_beta, list_order)
+    accuracies.append(accuracy)
 
 #%% simple data(6 samples)
 data0 = np.array([[1,2,3,0,-0.2,-0.4,-0.6,-0.8,-1],[1,1,1,-1,-1,-1,-1,-1,-1]])
