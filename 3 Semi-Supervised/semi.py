@@ -24,12 +24,14 @@ def get_gaussian(m1,m2,cov,N):
     return data,label
 
 def multi_eucli(x,u):
+    #calculate eucli distance
     eucli = []
     for xi in x:
         eucli.append(sum((xi-u)**2))
     return eucli
     
 def multi_gaussian(x,u,cov):
+    #calculate gaussian density
     gaussian = []
     for xi in x:
         dim = np.size(xi)
@@ -43,6 +45,7 @@ def multi_gaussian(x,u,cov):
     return gaussian
     
 def ml_gaussian(data):
+    #maximum likelihood estimation for gaussian
     #not for 1-dim
     dim = np.size(data,1)
     num = np.size(data,0)
@@ -57,6 +60,7 @@ def ml_gaussian(data):
     return u, cov
     
 def lda(data1,data2):
+    #generate linear discriminant classifier
     dim = np.size(data1,1)
     num1 = np.size(data1,0)
     num2 = np.size(data2,0)
@@ -84,9 +88,9 @@ def semi_nearest(train_data,train_label,semi_data,semi_label):
     label = list(train_label)
     label.extend(list(semi_label))
     
-    data_p = []
-    data_n = []
-    data_s = []
+    data_p = [] #positive class
+    data_n = [] #negative class
+    data_s = [] #unlabeled
     for i in range(len(label)):
         if label[i] == -1:
             data_n.append(data[i])
@@ -95,6 +99,7 @@ def semi_nearest(train_data,train_label,semi_data,semi_label):
         else:
             data_s.append(data[i])
     
+    #assign labels
     while len(data_s) > 0:
         u_n, cov_n = ml_gaussian(data_n)
         u_p, cov_p = ml_gaussian(data_p)
@@ -149,7 +154,7 @@ def semi_gaussian(train_data,train_label,semi_data,semi_label):
             
     return data_n, data_p
     
-#%%
+#%% simple dataset
 m1 = [1,4]
 m2 = [4,1]
 N = 5
@@ -158,7 +163,7 @@ semi_data, semi_label = get_gaussian(m1,m2,2*N)
 #set semi dataset unlabeled
 semi_label = np.zeros(np.size(semi_label))
 
-#%%
+#%% example for exercise 4
 m1 = [0,0]
 m2 = [10,0]
 m3 = [0,5]
@@ -172,22 +177,29 @@ semi_label = np.zeros(np.size(semi_label))
 train_label[0:M] = -1
 train_label[N:N+M] = 1
 
-#%%
+#%% nearest method
 data_n, data_p = semi_nearest(train_data,train_label,semi_data,semi_label)
 
-#%%
+#%% gaussian method
 data_n, data_p = semi_gaussian(train_data,train_label,semi_data,semi_label)
 
-#%%
+#%% plot for exercise 4(before)
 plt.scatter(train_data[0:M:,0],train_data[0:M:,1],c='r')
 plt.scatter(train_data[N:M+N:,0],train_data[N:M+N:,1],c='b')
 plt.scatter(train_data[M:N:,0],train_data[M:N:,1],c='grey')
 plt.scatter(train_data[M+N:2*N:,0],train_data[M+N:2*N:,1],c='grey')
 plt.scatter(semi_data[:,0],semi_data[:,1],c='grey')
 
-    #%%
+#%% plot for exercise 4(after)
 plt.scatter(np.array(data_n)[:,0],np.array(data_n)[:,1],c='r')
 plt.scatter(np.array(data_p)[:,0],np.array(data_p)[:,1],c='b')
-#%%
+#%% draw decision boundary
+cov = [[1,-0.5],[-0.5,1]]
+data1 = np.random.multivariate_normal([1,0], cov, 100)
+data2 = np.random.multivariate_normal([0,1], cov, 100)
+w, w0 = lda(data1,data2)
 plt.scatter(data1[:,0],data1[:,1],c='r')
 plt.scatter(data2[:,0],data2[:,1],c='b')
+x1 = -1
+x2 = 3
+plt.plot([x1,x2],[-(x1 * w[0]/w[1])-(w0/w[1]),-(x2 * w[0]/w[1])-(w0/w[1])],'k-')
