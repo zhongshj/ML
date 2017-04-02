@@ -20,6 +20,7 @@ class Node(object):
         self.parent = None
         self.left = None
         self.right = None
+        self.visited = False
         
     def print_df(self):
         #depth first search
@@ -30,7 +31,7 @@ class Node(object):
         if self.right != None:
             print("right:")
             self.right.print_df()
- #%%
+
 def get_cut(data):
     
     dim = np.size(data,1)
@@ -75,7 +76,9 @@ def kdtree(data,parent=None):
     
     if np.size(data,0) == 1:
         print("end:",data[0])
-        return Node(data[0],None)
+        head = Node(data[0],None)
+        head.parent = parent
+        return head
     elif np.size(data,0) == 0:
         return None
     else:
@@ -86,11 +89,17 @@ def kdtree(data,parent=None):
         head.right = kdtree(data1,head)
         
         return head
+        
+#%% 
+
             
 def dis(a, b):
-    return sum((a - b)**2)
-
-def update_li(li, p, x, k=3):
+    if np.size(a) == 1:
+        return (a-b)**2
+    else:
+        return sum((a - b)**2)
+    
+def update_li(li, p, x, k):
     # p: point you input
     # x: candidate point
     if len(li) < k:
@@ -103,21 +112,57 @@ def update_li(li, p, x, k=3):
                 x = temp
     return li
 
-#%%        
-def kd_search(head, p, k, li=[]):
-    
-    if head.left == None and head.right == None:
-        li = update_li(li, p, head.x, k)
+def dis_dim(p,li,node):
+    p = p[node.dim]
+    for i in range(len(li)):
+        if dis(p, node.x) < dis(p, li[i][node.dim]):
+            return True
+    return False
         
+def kd_search_in(node, p):
     
-    if head.x[head.dim] <= p[head.dim]:
-        if head.left == None:
-            
-            kd_search(head.left, p, k, li)
+    # if leaf node, return
+    if node.left == None and node.right == None:
+        print("found leaf")
+        node.visited = True
+        return node
+    
+    # if not leaf, go deeper
+    if p[node.dim] < node.x[node.dim]:
+        print("go left")
+        node = kd_search_in(node.left, p)
     else:
-        kd_search(head.right, p, k, li)
+        print("go right")
+        node = kd_search_in(node.right, p)
         
+    return node
+    
+
+def kd_search(head, p, li=[]):
+    k = 3
+    #first, get leaf node
+    leaf = kd_search_in(head,p)
+    li = update_li(li, p, leaf.x, k)
+    
+    #then, get back and update list
+    while leaf.parent != None:
+        upper = leaf.parent
+        print("go up")
+        if upper.visited == False:
+            upper.visited = True
+            li = update_li(li, p, upper.x, k)
+            if dis_dim(p,li,upper):
+                if upper.left == leaf:
+                    li = kd_search(upper.right, p, li)
+                else:
+                    li = kd_search(upper.left, p, li)                
+    return li
     
 #%%
+data = np.array([[1,2],[1,4],[5,3],[8,7],[3,6],[6,6],[3,1]])
 
 head = kdtree(data)
+
+#%%
+
+li = kd_search(head, np.array([1.1,2.1]))
