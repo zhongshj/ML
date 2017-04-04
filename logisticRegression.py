@@ -54,14 +54,14 @@ def logistic(data,label):
     num = np.size(label)
     theta = np.ones(dim)    #theta
     alpha = 0.01       #learning rate
-#    k = 10000        #round of iteration
+#    k = 1000        #round of iteration
 #    for i in range(k):
     while True:
         dif = np.zeros(dim)
         for j in range(num):
             dif = dif + (sigmoid(sum(data[j] * theta))-label[j]) * data[j]
-        print(dif)
-        if sum(abs(dif))/np.size(dif) < 0.01:    #break when gradient vector is small
+        print("dif:",dif)
+        if sum(abs(dif))/np.size(dif) < 0.1:    #break when gradient vector is small
             break
         theta = theta - alpha * dif
         print("theta:",theta)
